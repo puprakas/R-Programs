@@ -1,0 +1,159 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+rows {data-width=650}
+-----------------------------------------------------------------------
+
+### Twitter Count
+
+```{r}
+library(gplots)
+library(tm)
+library(wordcloud)
+library(stringr)
+library(flexdashboard)
+library(SnowballC)
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(base)
+library(plotly)
+
+setwd("D:\\dataVisualization")
+Twitter<-read.csv("narendramodi_tweets.csv",header = TRUE)
+
+TweetsCount<-length(unique(Twitter$text)) 
+valueBox(TweetsCount,icon = "fa-pencil",color ="Red")
+```
+
+### Average Retweets
+
+```{r}
+
+AverageRetweets<-round(mean(Twitter$retweets_count),digits = 2) 
+valueBox(AverageRetweets,icon = "fa fa-coffee")
+```
+
+### Average Favorites
+
+```{r}
+AverageFavorites<-round(mean(Twitter$favorite_count),digits = 2) 
+valueBox(AverageFavorites,icon = "fa fa-coffee")
+```
+
+rows {data-width=350}
+-----------------------------------------------------------------------
+
+### Top 5 Words
+
+```{r}
+
+Twitter$date<-as.Date(Twitter$created_at,'%Y-%m-%d %H:%M:%S')
+Twitter$Quarters<-quarters(Twitter$date)
+Twitter$text<-as.character(Twitter$text)
+words<-strsplit(Twitter$text,' ')
+words_list<-unlist(words)
+wordtable<-table(words_list)
+wordtable<-sort(wordtable,decreasing = TRUE)
+wordframe<-as.data.frame(wordtable)
+stop_words<-stopwords()
+custom_stop_words<-c("&amp;","rt","рд.ре???")
+wordframe$words_list<-tolower(wordframe$words_list)
+wordframe<-wordframe[!wordframe$words_list %in% stop_words,]
+wordframe<-wordframe[!wordframe$words_list %in% custom_stop_words,]
+Top5<-head(wordframe,5)
+Topwords<-Top5$words_list
+for (word in Topwords){
+Twitter[word]<-str_count(Twitter$text,word)
+}
+abc<-select(Twitter,Quarters,will,india,people,pm)
+meltdata<-melt(abc,id.vars ="Quarters")
+trans<-meltdata %>% group_by(Quarters,variable) %>% summarise(count=sum(value))
+ggplot(trans,aes(x=Quarters,y=count))+geom_bar(stat = "identity",fill='blue')+facet_wrap(~variable)+xlim("Q1","Q2","Q3","Q4")
+
+```
+
+rows {data-width=350}
+-----------------------------------------------------------------------
+
+### Top 5 Hashtags 
+
+```{r}
+
+HashNew<-words_list[grepl("#",words_list)]
+
+HashNew=str_replace_all(HashNew,"[[:punct:]]","")
+
+HashNew1<-paste("#",HashNew,sep="")
+TopwordsTable<-table(HashNew1)
+Topwords<-sort(TopwordsTable,decreasing = TRUE)
+Topwordsdf<-as.data.frame(Topwords)
+TopHashwords<-head(Topwordsdf,5)
+Hashnames<-TopHashwords$HashNew1
+  
+for (Hashtag in Hashnames) {
+  Twitter[Hashtag]<-str_count(Twitter$text,Hashtag)
+}
+Twitter$Year_month<-format(Twitter$date,'%Y-%m')
+WordsData<-filter(Twitter,Year_month>='2016-01' & Year_month <='2016-12')
+Hashselect<-select(WordsData,`#Sandesh2Soldiers`,`#MannKiBaat`,`#TirangaYatra`,`#TransformingIndia`,`#YogaDay`,Year_month)
+Hashmelt<-melt(Hashselect,id.vars = 'Year_month')
+Hashtagyear<-Hashmelt %>% group_by(Year_month,variable) %>% summarise(count=sum(value))
+ggplot(Hashtagyear,aes(x=Year_month,y=count,group=variable,color=variable))+geom_line()
+```
+
+rows {data-width=350}
+-----------------------------------------------------------------------
+
+### Word Cloud representing top 50 words
+
+```{r}
+TopHash50<-head(Topwordsdf,50)
+library(wordcloud)
+wordcloud(TopHash50$HashNew1,TopHash50$Freq,scale=c(2,0.5),colors = brewer.pal(6,'Dark2'))
+```
+
+rows {data-width=350}
+-----------------------------------------------------------------------
+
+### Visual Story
+
+```{r}
+options(scipen = 2)
+Twitter2016<-filter(Twitter,Year_month>='2016-01' & Year_month <='2016-12')
+Tweets<-Twitter2016%>%group_by(Quarters)%>%summarise(TotalRetweets=sum(retweets_count),TotalFavorites=sum(favorite_count))
+ggplot(Tweets,aes(x=Quarters,y=TotalRetweets,fill=TotalFavorites))+ geom_bar(stat = "identity")
+
+```
+
+rows {data-width=150}
+-----------------------------------------------------------------------
+
+
+* It is seen that during the fourth quarter(october to december) modi's tweets received maximum retweets and favorites as during that time Demonitization and surgical strikes occured"
+
+
+rows {data-width=350}
+-----------------------------------------------------------------------
+
+### Visual Story
+```{r}
+ggplot(Hashtagyear,aes(x=Year_month,y=count,group=variable,color=variable))+geom_line()
+
+```
+
+rows {data-width=350}
+-----------------------------------------------------------------------
+### Visual Story Insights
+
+* The most used word by modi in the year 2016 is Sandesh2Soldier  & its been used the maximum during the month of october when surgical strikes had happened.
+* This tweet by modi was to motivate and congratulate the indian soldiers.In the month of june   modi has maximum  tweets as Yoga  day,This is in  order to  * wish and motivate Indians to practice yoga. Tranforming India is highly being used by modi to promoteDigitilization Digitilization")
