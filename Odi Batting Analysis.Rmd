@@ -1,0 +1,97 @@
+---
+title: "Cricket Data"
+author: "Puja Prakash"
+date: "31 January 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+setwd("D:\\dataVisualization")
+odi<-read.csv("odi-batting-analysis.csv",sep = ",",header=TRUE)
+head(odi)
+#Create a bar chart which plots total runs by month, by day of week and by day of the month
+OdiMonth<-odi%>%group_by(Month)%>%summarise(TotalRuns=sum(Runs,na.rm=TRUE))
+ggplot(OdiMonth,aes(x=Month,y=TotalRuns,fill=-Month))+geom_bar(stat = "identity")+   xlim("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+
+OdiWeekday<-odi%>%group_by(WeekDay)%>%summarise(TotalRuns=sum(Runs,na.rm=TRUE))
+ggplot(OdiWeekday,aes(x=WeekDay,y=TotalRuns,fill=-WeekDay))+geom_bar(stat = "identity")+xlim("Mon","Tue","Wed","Thurs","Fri","Sat","Sun")
+
+OdiDayOfMonth<-odi%>%group_by(Day)%>%summarise(TotalRuns=sum(Runs,na.rm=TRUE))
+ggplot(OdiDayOfMonth,aes(x=Day,y=TotalRuns,fill =-Day))+geom_bar(stat = "identity")+scale_x_continuous(breaks = scales::pretty_breaks(n=31))
+
+# Create a new column by binning the Runs column using the following ranges and plot the
+#frequency count of ranges
+#a. 0-25,
+#b. 26-50,
+#c. 51-75,
+#d. 76-100,
+#e. 100+
+RunsInterval<-cut(odi$Runs,breaks = c(-Inf,25,50,75,100,Inf),labels = c("0-25","26-50","51-75","76-100","100+"),na.rm=TRUE)
+abc<-table(RunsInterval)
+RunsRange<-data.frame(abc)
+ggplot(RunsRange,aes(x=RunsInterval,y=Freq))+geom_bar(stat = "identity")
+
+#Consider the top ten players by total runs and compute and visualize the number of centuries
+#across years and number of ducks across years. 
+#Runs >=100
+TopPlayers<-odi%>%group_by(Player)%>%summarise(TotalRuns=sum(Runs))%>%arrange(-TotalRuns)
+top10<-head(TopPlayers,10)
+
+TopPlayerNew<-top10$Player
+OdiTopPlayers<-filter(odi,odi$Player %in% TopPlayerNew)
+OdiPlayerCentury<-filter(OdiTopPlayers,OdiTopPlayers$Runs>=100)
+
+test<-OdiPlayerCentury %>% group_by(Player,Year)%>%summarise(Count=n())
+head(test)
+ggplot(test,aes(x=Year,y=Count))+geom_line()+facet_wrap(~Player)
+
+#Runs = 0
+TopPlayers<-odi%>%group_by(Player)%>%summarise(TotalRuns=sum(Runs))%>%arrange(-TotalRuns)
+top10<-head(TopPlayers,10)
+TopPlayerNew<-top10$Player
+OdiTopPlayers<-filter(odi,odi$Player %in% TopPlayerNew)
+OdiPlayerducks<-filter(OdiTopPlayers,OdiTopPlayers$Runs==0)
+
+test<-OdiPlayerducks %>% group_by(Player,Year)%>%summarise(Count=n())
+head(test)
+ggplot(test,aes(x=Year,y=Count))+geom_line()+facet_wrap(~Player)
+
+#Compute poor players by using following criteria
+#a. Calculate total number of runs by each player and then filter only for those players who
+#have scored more than 5000 runs.
+
+TotalNoruns<-odi%>% group_by(Player) %>% summarise(TotalRuns=sum(Runs))%>% arrange(TotalRuns)%>% filter(TotalRuns>5000)
+head(TotalNoruns,10)
+
+#b. Calculate total number of runs by each player and then filter only for those players who
+#have played more than 50 matches
+TotalMatches<-odi %>% group_by(Player)%>%summarise(TotalRuns=sum(Runs),count=n())%>%
+arrange(TotalRuns)%>% filter(count>50)
+head(TotalMatches,10)
+
+#Create a new column by computing the number of words in each player's name
+str(odi$Player)
+odi$Player<-as.character(odi$Player)
+SplitWords<-strsplit(odi$Player," ")
+odi$wordcount<-sapply(SplitWords,length)
+head(odi,20)
+
+#Crosstab between month and day. Every row should have month and every column should have
+#day of month. Value inside each cell should be the frequency count
+
+Crostab1<-xtabs(~odi$Month+odi$Day)
+head(Crostab1)
+```
+
+
+## Including Plots
+
+```{r pressure, echo=FALSE}
+
+```
+
